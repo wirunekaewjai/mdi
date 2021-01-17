@@ -20,13 +20,8 @@ export default function exec (args: Args)
   rimraf.sync(config.out);
   fsx.mkdirpSync(config.out);
 
-  const refs: string[] = [
-    `import BaseIcon from './index.vue';`
-  ];
-
-  const links: string[] = [
-    `Vue.component('mdi-base-icon', BaseIcon);`,
-  ];
+  const refs: string[] = [];
+  const links: string[] = [];
   
   for (const icon of config.icons) {
     const key = toPascalCase(icon);
@@ -45,14 +40,9 @@ export default function exec (args: Args)
   createBaseIcon(config.out);
 
   const indexPath = path.join(config.out, 'index.ts');
-  const indexData = [
-    `import Vue from 'vue';`,
-    ...refs,
-    '',
-    ...links,
-  ];
+  const indexData = getIndex(refs, links);
 
-  fsx.writeFileSync(indexPath, indexData.join('\n'));
+  fsx.writeFileSync(indexPath, indexData);
   console.log(indexPath);
 }
 
@@ -145,6 +135,14 @@ export default Vue.extend({
   })
 });
 </script>`;
+
+const getIndex = (refs: string[], links: string[]) =>
+`import Vue from 'vue';
+import BaseIcon from './index.vue';
+${refs.join('\n')}
+
+Vue.component('mdi-base-icon', BaseIcon);
+${links.join('\n')}`;
 
 const getBaseIconTemplate = () =>
 `<template>
