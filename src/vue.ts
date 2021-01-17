@@ -1,7 +1,6 @@
 import * as fsx from 'fs-extra';
 import * as path from 'path';
 import * as rimraf from 'rimraf';
-import * as mdi from '@mdi/js';
 
 import { nanoid } from 'nanoid';
 
@@ -29,22 +28,17 @@ export default function exec (args: Args)
     `Vue.component('mdi-base-icon', BaseIcon);`,
   ];
   
-  for (const name of config.icons) {
-    const key = toPascalCase(name);
-    const file = 'mdi-' + name + '.vue';
-    const value = (mdi as any)['mdi' + key] as string;
+  for (const icon of config.icons) {
+    const key = toPascalCase(icon);
+    const file = `mdi-${icon}.vue`;
 
     refs.push(`import ${key} from './${file}';`);
-    links.push(`Vue.component('mdi-${name}', ${key});`);
+    links.push(`Vue.component('mdi-${icon}', ${key});`);
 
     const templatePath = path.join(config.out, file);
-    const template = [
-      `<template>`,
-      ` <mdi-base-icon path="${value}" ></mdi-base-icon>`,
-      `</template>`,
-    ];
+    const template = getIconTemplate(key);
 
-    fsx.writeFileSync(templatePath, template.join('\n'));
+    fsx.writeFileSync(templatePath, template);
     console.log(templatePath);
   }
 
@@ -64,38 +58,8 @@ export default function exec (args: Args)
 
 function createBaseIcon (out: string)
 {
-  const data = `
-<template>
-  <svg
-		width="1em"
-		height="1em"
-		viewBox="0 0 24 24"
-	>
-		<path :d="path" ></path>
-	</svg>
-</template>
-
-<script lang="ts">
-import Vue from 'vue';
-
-export default Vue.extend({
-  props: {
-    path: {
-      type: String,
-      required: true,
-    },
-  },
-});
-</script>
-
-<style lang="css" scoped>
-path {
-	fill: currentColor;
-}
-</style>
-`.trim();
-
   const file = path.join(out, 'index.vue');
+  const data = getBaseIconTemplate();
 
   fsx.writeFileSync(file, data);
   console.log(file);
@@ -165,3 +129,47 @@ function getConfigFromJS (code: string)
 
   return {};
 }
+
+const getIconTemplate = (name: string) =>
+`<template>
+  <mdi-base-icon :path="path" ></mdi-base-icon>
+</template>
+
+<script lang="ts">
+import Vue from 'vue';
+import { mdi${name} } from '@mdi/js';
+
+export default Vue.extend({
+  data: () => ({
+    path: mdi${name}
+  })
+});
+</script>`;
+
+const getBaseIconTemplate = () =>
+`<template>
+  <svg
+    width="1em"
+    height="1em"
+    viewBox="0 0 24 24"
+  >
+    <path :d="path" ></path>
+  </svg>
+</template>
+
+<script lang="ts">
+import Vue from 'vue';
+
+export default Vue.extend({
+  props: {
+    path: {
+      type: String,
+      required: true,
+    },
+  },
+});
+</script>
+
+<style lang="css" scoped>
+path { fill: currentColor; }
+</style>`;
